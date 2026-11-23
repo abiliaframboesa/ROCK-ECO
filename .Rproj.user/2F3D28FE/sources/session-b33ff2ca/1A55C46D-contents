@@ -1,5 +1,0 @@
-"Variable","Odds_Ratio","CI_Lower","CI_Upper","P_Value"
-"(Intercept)",2.183,0.144,34.73,0.574
-"substrate_moisture_index",4.686,0.899,26.612,0.072
-"surface_temperature_c",0.892,0.799,0.989,0.034
-"shade_fraction",7.168,1.244,45.816,0.031
