@@ -22,7 +22,10 @@ cat("Rows:", nrow(dat), "\n")
 cat("Sites:", length(unique(dat$site_id)), "\n")
 cat("Missing values:", sum(is.na(dat)), "\n")
 cat("Lichen occurrence rate:", round(mean(dat$lichen_presence), 3), "\n")
-write.csv(summary(dat), file.path(out_dir, "data_summary.csv"))
+capture.output(
+  summary(dat),
+  file = file.path(out_dir, "data_summary.txt")
+)
 
 # 2. Exploratory analysis --------------------------------------------------
 p1 <- ggplot(dat, aes(x = substrate_moisture_index,
@@ -104,3 +107,294 @@ ggsave(file.path(out_dir, "04_local_sampling_layout.png"), p4,
 write.csv(dat, file.path(out_dir, "modelled_dataset.csv"), row.names = FALSE)
 cat("\nWorkflow completed. Inspect files in the outputs/ folder.\n")
 cat("Reminder: these are synthetic data; coefficients are illustrative only.\n")
+
+
+
+# 6. Principal Component Analysis (PCA) -------------------------------
+
+# Export PCA loadings
+pca_loadings <- as.data.frame(pca$rotation)
+pca_loadings$variable <- rownames(pca_loadings)
+
+write.csv(
+  pca_loadings,
+  file.path(out_dir, "PCA_loadings.csv"),
+  row.names = FALSE
+)
+
+# Export explained variance
+pca_variance <- summary(pca)$importance
+write.csv(
+  pca_variance,
+  file.path(out_dir, "PCA_explained_variance.csv")
+)
+
+# PCA biplot
+png(
+  file.path(out_dir, "05_PCA_biplot.png"),
+  width = 1800, height = 1400, res = 200
+)
+biplot(pca, scale = 0, main = "ROCK-ECO: Environmental PCA")
+dev.off()
+
+
+# 7. Logistic regression effect estimates ----------------------------
+
+# Calculate odds ratios and 95% profile likelihood confidence intervals
+OR <- exp(coef(model))
+IC <- exp(confint(model))
+
+or_table <- data.frame(
+  variable = names(OR),
+  odds_ratio = as.numeric(OR),
+  conf_low = IC[, 1],
+  conf_high = IC[, 2],
+  row.names = NULL
+)
+
+# Add p-values
+or_table$p_value <- summary(model)$coefficients[, 4]
+
+# Round numeric columns
+numeric_columns <- c(
+  "odds_ratio", "conf_low", "conf_high", "p_value"
+)
+
+or_table[numeric_columns] <- lapply(
+  or_table[numeric_columns],
+  round,
+  digits = 3
+)
+
+# Export results
+write.csv(
+  or_table,
+  file.path(out_dir, "GLM_odds_ratios_profile_CI.csv"),
+  row.names = FALSE
+)
+
+print(or_table)
+
+
+# 8. Model diagnostics and performance -------------------------------
+
+# Predicted probabilities
+prob <- predict(model, type = "response")
+
+# Classification using a 0.5 threshold
+pred <- ifelse(prob >= 0.5, 1, 0)
+
+# Confusion matrix
+confusion_matrix <- table(
+  Observed = dat$lichen_presence,
+  Predicted = pred
+)
+
+print(confusion_matrix)
+
+# Sensitivity
+sensitivity <- sum(
+  pred == 1 & dat$lichen_presence == 1
+) / sum(dat$lichen_presence == 1)
+
+# Specificity
+specificity <- sum(
+  pred == 0 & dat$lichen_presence == 0
+) / sum(dat$lichen_presence == 0)
+
+# Save performance metrics
+performance <- data.frame(
+  metric = c("Sensitivity", "Specificity"),
+  value = c(sensitivity, specificity)
+)
+
+write.csv(
+  performance,
+  file.path(out_dir, "model_performance.csv"),
+  row.names = FALSE
+)
+
+print(performance)
+
+
+# Install pROC if not already installed
+if (!requireNamespace("pROC", quietly = TRUE)) {
+  install.packages("pROC")
+}
+
+library(pROC)
+
+# Generate ROC curve
+roc_model <- roc(
+  response = dat$lichen_presence,
+  predictor = prob
+)
+
+# Calculate AUC
+auc_value <- auc(roc_model)
+
+print(auc_value)
+
+# Plot ROC curve
+png(
+  file.path(out_dir, "06_ROC_curve.png"),
+  width = 1800,
+  height = 1400,
+  res = 200
+)
+
+plot(
+  roc_model,
+  main = "ROCK-ECO: ROC Curve",
+  col = "steelblue",
+  lwd = 2
+)
+
+dev.off()
+
+
+# Model 1: Full model
+model_full <- glm(
+  lichen_presence ~ substrate_moisture_index +
+    substrate_roughness_index +
+    surface_temperature_c +
+    surface_pH +
+    shade_fraction + site_id,
+  data = dat,
+  family = binomial
+)
+
+# Model 2: Environmental variables without site
+model_no_site <- glm(
+  lichen_presence ~ substrate_moisture_index +
+    substrate_roughness_index +
+    surface_temperature_c +
+    surface_pH +
+    shade_fraction,
+  data = dat,
+  family = binomial
+)
+
+# Model 3: Simplified environmental model
+model_simple <- glm(
+  lichen_presence ~ substrate_moisture_index +
+    surface_temperature_c +
+    shade_fraction,
+  data = dat,
+  family = binomial
+)
+
+# Compare models
+model_comparison <- data.frame(
+  Model = c("Full model", "Without site", "Simplified model"),
+  AIC = c(
+    AIC(model_full),
+    AIC(model_no_site),
+    AIC(model_simple)
+  )
+)
+
+model_comparison <- model_comparison[
+  order(model_comparison$AIC), ]
+
+print(model_comparison)
+
+write.csv(
+  model_comparison,
+  file.path(out_dir, "model_comparison.csv"),
+  row.names = FALSE
+)
+
+
+
+# Fit the selected simplified model
+model_final <- glm(
+  lichen_presence ~ substrate_moisture_index +
+    surface_temperature_c + shade_fraction,
+  data = dat,
+  family = binomial(link = "logit")
+)
+
+# Display model summary
+summary(model_final)
+
+# Calculate odds ratios and confidence intervals
+OR_final <- exp(coef(model_final))
+CI_final <- exp(confint(model_final))
+
+final_results <- data.frame(
+  Variable = names(OR_final),
+  Odds_Ratio = as.numeric(OR_final),
+  CI_Lower = CI_final[, 1],
+  CI_Upper = CI_final[, 2],
+  P_Value = summary(model_final)$coefficients[, 4]
+)
+
+# Round numeric columns only
+numeric_columns <- c(
+  "Odds_Ratio",
+  "CI_Lower",
+  "CI_Upper",
+  "P_Value"
+)
+
+final_results[numeric_columns] <- lapply(
+  final_results[numeric_columns],
+  round,
+  digits = 3
+)
+
+print(final_results)
+
+# Save results
+write.csv(
+  final_results,
+  file.path(out_dir, "final_model_results.csv"),
+  row.names = FALSE
+)
+
+
+library(pROC)
+
+prob_final <- predict(model_final, type = "response")
+
+roc_final <- roc(
+  dat$lichen_presence,
+  prob_final
+)
+
+auc(roc_final)
+
+png(
+  file.path(out_dir, "07_Final_model_ROC.png"),
+  width = 900,
+  height = 700
+)
+
+plot(
+  roc_final,
+  main = "ROC Curve - Simplified Logistic Regression Model"
+)
+
+dev.off()
+
+file.exists(
+  file.path(out_dir, "07_Final_model_ROC.png")
+)
+
+# 9. Workflow completion ----------------------------------------------
+
+cat("\nROCK-ECO analysis workflow completed.\n")
+cat("Check the outputs/ directory for generated results.\n")
+cat("All input observations are synthetic and illustrative only.\n")
+# Create an updated project archive
+zip(
+  zipfile = "ROCK_ECO_FINAL.zip",
+  files = c(
+    "data",
+    "R",
+    "outputs",
+    "README.md"
+  ),
+  flags = "-r"
+)
