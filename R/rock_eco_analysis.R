@@ -387,14 +387,4 @@ file.exists(
 cat("\nROCK-ECO analysis workflow completed.\n")
 cat("Check the outputs/ directory for generated results.\n")
 cat("All input observations are synthetic and illustrative only.\n")
-# Create an updated project archive
-zip(
-  zipfile = "ROCK_ECO_FINAL.zip",
-  files = c(
-    "data",
-    "R",
-    "outputs",
-    "README.md"
-  ),
-  flags = "-r"
-)
+
