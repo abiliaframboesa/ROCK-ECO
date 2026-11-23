@@ -1,0 +1,7 @@
+"","  site_id"," sample_id","surface_temperature_c","relative_humidity_pct","substrate_moisture_index","substrate_roughness_index","  surface_pH","shade_fraction","   x_local","   y_local","lichen_presence","lichen_cover_pct"
+"","Length:150        ","Length:150        ","Min.   : 8.23  ","Min.   :30.00  ","Min.   :0.4910  ","Min.   :1.730  ","Min.   :4.000  ","Min.   :0.0670  ","Min.   :-0.240  ","Min.   :-0.076  ","Min.   :0.0000  ","Min.   : 0.000  "
+"","Class :character  ","Class :character  ","1st Qu.:16.14  ","1st Qu.:56.26  ","1st Qu.:0.8675  ","1st Qu.:4.340  ","1st Qu.:6.232  ","1st Qu.:0.3583  ","1st Qu.: 2.079  ","1st Qu.: 2.221  ","1st Qu.:1.0000  ","1st Qu.: 5.345  "
+"","Mode  :character  ","Mode  :character  ","Median :18.79  ","Median :65.47  ","Median :0.9985  ","Median :5.600  ","Median :6.700  ","Median :0.5200  ","Median : 5.098  ","Median : 4.535  ","Median :1.0000  ","Median :24.935  "
+"",NA,NA,"Mean   :18.62  ","Mean   :65.21  ","Mean   :1.0071  ","Mean   :5.567  ","Mean   :6.749  ","Mean   :0.5269  ","Mean   : 5.024  ","Mean   : 4.505  ","Mean   :0.7533  ","Mean   :25.666  "
+"",NA,NA,"3rd Qu.:21.22  ","3rd Qu.:73.21  ","3rd Qu.:1.1790  ","3rd Qu.:6.987  ","3rd Qu.:7.338  ","3rd Qu.:0.7290  ","3rd Qu.: 7.994  ","3rd Qu.: 6.824  ","3rd Qu.:1.0000  ","3rd Qu.:42.752  "
+"",NA,NA,"Max.   :29.95  ","Max.   :95.82  ","Max.   :1.5000  ","Max.   :9.840  ","Max.   :9.000  ","Max.   :0.9770  ","Max.   :10.404  ","Max.   : 9.066  ","Max.   :1.0000  ","Max.   :69.300  "
